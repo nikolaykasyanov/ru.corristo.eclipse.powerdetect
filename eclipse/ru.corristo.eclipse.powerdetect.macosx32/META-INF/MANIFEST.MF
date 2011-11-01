@@ -1,0 +1,9 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Power Detector native for 32 bit OS X
+Bundle-SymbolicName: ru.corristo.eclipse.powerdetect.macosx32;singleton:=true
+Bundle-Version: 1.0.0.qualifier
+Bundle-Vendor: Nikolay Kasyanov
+Fragment-Host: ru.corristo.eclipse.powerdetect;bundle-version="1.0.0"
+Bundle-RequiredExecutionEnvironment: JavaSE-1.6
+Eclipse-PlatformFilter: (& (osgi.ws=cocoa) (osgi.os=macosx) (osgi.arch=x86) )
