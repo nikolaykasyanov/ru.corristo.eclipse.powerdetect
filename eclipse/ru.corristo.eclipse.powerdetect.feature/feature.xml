@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feature
+      id="ru.corristo.eclipse.powerdetect.feature"
+      label="Power Source Detector"
+      version="1.0.0.qualifier"
+      provider-name="Nikolay Kasyanov"
+      os="macosx"
+      ws="cocoa"
+      arch="x86">
+
+   <description url="http://www.example.com/description">
+      [Enter Feature Description here.]
+   </description>
+
+   <copyright url="http://www.example.com/copyright">
+      [Enter Copyright Description here.]
+   </copyright>
+
+   <license url="http://www.example.com/license">
+      [Enter License Description here.]
+   </license>
+
+   <url>
+      <update url="http://corristo.ru/eclipse/power-source-detector/update"/>
+   </url>
+
+   <plugin
+         id="ru.corristo.eclipse.powerdetect"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         unpack="false"/>
+
+   <plugin
+         id="ru.corristo.eclipse.powerdetect.macosx32"
+         download-size="0"
+         install-size="0"
+         version="0.0.0"
+         fragment="true"
+         unpack="false"/>
+
+</feature>

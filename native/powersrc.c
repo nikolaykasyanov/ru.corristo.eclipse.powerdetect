@@ -11,20 +11,29 @@
 extern "C" {
 #endif
 
+typedef enum {
+	AC,
+	BATTERY
+} POWER_SOURCE;
+
+// java related stuff
 static JavaVM *jvm;
-static jclass jcls;
-static jmethodID powerSourceChanged_id;
+static jclass listenerClass;
+static jmethodID listenerMethod_id;
+
+static POWER_SOURCE lastPowerSource;
 
 void powerSourceChanged(void *context);
 void * thread_start(void *);
-int isOnBattery(void);
+POWER_SOURCE currentPowerSource(void);
+void notify();
 
 jint GetJNIEnv(JNIEnv **env, int *mustDetach)
 {
 	jint getEnvErr = JNI_OK;
 	*mustDetach = 0;
 	if (jvm) {
-		getEnvErr = (*jvm)->GetEnv(jvm, (void **)env, JNI_VERSION_1_4);
+		getEnvErr = (*jvm)->GetEnv(jvm, (void **)env, JNI_VERSION_1_6);
 		if (getEnvErr == JNI_EDETACHED) {
 			getEnvErr = (*jvm)->AttachCurrentThread(jvm, (void **)env, NULL);
 			if (getEnvErr == JNI_OK) {
@@ -46,19 +55,30 @@ JNIEXPORT void JNICALL Java_ru_corristo_eclipse_powerdetect_PowerSourceDetector_
 {
 	printf("initialize called\n");
 
-	jcls = (*env)->FindClass(env, "ru/corristo/eclipse/powerdetect/PowerSourceListener");
+	listenerClass = (*env)->FindClass(env, "ru/corristo/eclipse/powerdetect/PowerSourceListener");
 
-	if (jcls == 0) {
-		printf("Can not find NativeInterop class\n");
+	if (listenerClass == NULL) {
+		printf("Can not find PowerSourceListener class\n");
 		return;
 	}
 
-	powerSourceChanged_id = (*env)->GetStaticMethodID(env, jcls, "powerSourceChanged", "(Z)V");
-
-	if (powerSourceChanged_id == 0) {
-		printf("Can not find method powerSourceChanged\n");
+	// make listenerClass global ref
+	listenerClass = (*env)->NewGlobalRef(env, listenerClass);
+	if (listenerClass == NULL) {
+		printf("Can not create global ref, possibly OutOfMemoryError");
 		return;
 	}
+
+	listenerMethod_id = (*env)->GetStaticMethodID(env, listenerClass, "powerSourceChanged", "(Z)V");
+
+	if (listenerMethod_id == NULL) {
+		printf("Can not find method PowerSourceListener.powerSourceChanged\n");
+		return;
+	}
+
+	// get initial value
+	lastPowerSource = currentPowerSource();
+	//notify(lastPowerSource);
 
 	// create new thread
 	pthread_t thread;
@@ -70,15 +90,15 @@ JNIEXPORT void JNICALL Java_ru_corristo_eclipse_powerdetect_PowerSourceDetector_
 	printf("destroy called\n");
 
 	// kill thread there?
+
+	// remove global ref if exists
+	if (listenerClass == NULL) {
+		(*env)->DeleteGlobalRef(env, listenerClass);
+	}
 }
 
-void powerSourceChanged(void *context) {
-
-	int value;
-
-	printf("power source changed\n");
-
-	if (jcls == 0 || powerSourceChanged_id == 0) {
+void notify(POWER_SOURCE powerSource) {
+	if (listenerClass == NULL || listenerMethod_id == NULL) {
 		printf("Class not initialized\n");
 		return;
 	}
@@ -91,12 +111,21 @@ void powerSourceChanged(void *context) {
 		return;
 	}
 
-	value = isOnBattery();
-
-	(*env)->CallStaticVoidMethod(env, jcls, powerSourceChanged_id, value);
+	(*env)->CallStaticVoidMethod(env, listenerClass, listenerMethod_id, powerSource);
 
 	if (shouldDetach) {
 		(*jvm)->DetachCurrentThread(jvm);
+	}
+}
+
+void powerSourceChanged(void *context) {
+	printf("power source notification received\n");
+
+	POWER_SOURCE value = currentPowerSource();
+
+	if (value != lastPowerSource) { // check if power source actually changed
+		lastPowerSource = value;
+		notify(value);
 	}
 }
 
@@ -105,16 +134,11 @@ void *thread_start(void *arg) {
 
 	CFRunLoopSourceRef CFrls;
     
-    CFrls = IOPSNotificationCreateRunLoopSource(&powerSourceChanged, NULL);
+    CFrls = IOPSNotificationCreateRunLoopSource(powerSourceChanged, NULL);
     if(CFrls) {
     	printf("adding run loop source\n");
 
     	CFRunLoopRef r = CFRunLoopGetCurrent();
-
-    	if (r == 0) {
-    		printf("CFRunLoopGetCurrent failed\n");
-    	}
-
         CFRunLoopAddSource(CFRunLoopGetCurrent(), CFrls,
                            kCFRunLoopDefaultMode);
         CFRelease(CFrls);
@@ -125,11 +149,11 @@ void *thread_start(void *arg) {
     return NULL;
 }
 
-int isOnBattery() {
+POWER_SOURCE currentPowerSource() {
 	CFTypeRef blob = IOPSCopyPowerSourcesInfo();
 	CFArrayRef list = IOPSCopyPowerSourcesList(blob);
 
-	int onBattery = 1;
+	POWER_SOURCE result = BATTERY;
 
 	int i = 0;
 
@@ -145,7 +169,7 @@ int isOnBattery() {
 		powerSourceState = CFDictionaryGetValue(dict, CFSTR(kIOPSPowerSourceStateKey));
 
 		if(CFEqual(powerSourceState, CFSTR(kIOPSACPowerValue))) {
-			onBattery = 0;
+			result = AC;
 			break;
 		}
 	}
@@ -153,7 +177,7 @@ int isOnBattery() {
 	CFRelease(blob);
 	CFRelease(list);
 
-	return onBattery;
+	return result;
 }
 
 #ifdef __cplusplus
