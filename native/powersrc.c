@@ -65,7 +65,7 @@ JNIEXPORT void JNICALL Java_ru_corristo_eclipse_powerdetect_PowerSourceDetector_
 	// make listenerClass global ref
 	listenerClass = (*env)->NewGlobalRef(env, listenerClass);
 	if (listenerClass == NULL) {
-		printf("Can not create global ref, possibly OutOfMemoryError");
+		printf("Can not create global ref, possibly OutOfMemoryError\n");
 		return;
 	}
 
@@ -78,7 +78,7 @@ JNIEXPORT void JNICALL Java_ru_corristo_eclipse_powerdetect_PowerSourceDetector_
 
 	// get initial value
 	lastPowerSource = currentPowerSource();
-	//notify(lastPowerSource);
+	notify(lastPowerSource);
 
 	// create new thread
 	pthread_t thread;

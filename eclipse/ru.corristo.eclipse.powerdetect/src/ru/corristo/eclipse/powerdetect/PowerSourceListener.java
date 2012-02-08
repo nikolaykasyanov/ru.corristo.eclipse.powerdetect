@@ -11,7 +11,7 @@ public class PowerSourceListener {
 	 * Should be called from native module when power source actually changed
 	 * 
 	 * @param isBattery
-	 *            is we are on battery power
+	 *            are we on battery power
 	 */
 	public static void powerSourceChanged(final boolean isBattery) {
 		System.out.println("Power source changed to "

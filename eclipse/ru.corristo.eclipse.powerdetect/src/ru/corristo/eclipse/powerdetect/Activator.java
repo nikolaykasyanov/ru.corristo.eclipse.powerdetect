@@ -28,8 +28,6 @@ public class Activator extends AbstractUIPlugin implements IStartup {
 	public void start(BundleContext context) throws Exception {
 		super.start(context);
 		plugin = this;
-		
-		PowerSourceDetector.initialize();
 	}
 
 	/*
@@ -54,7 +52,7 @@ public class Activator extends AbstractUIPlugin implements IStartup {
 
 	@Override
 	public void earlyStartup() {
-		//do nothing for now
+		PowerSourceDetector.initialize();
 	}
 
 }
